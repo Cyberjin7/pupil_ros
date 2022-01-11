@@ -12,6 +12,7 @@ import zmq
 import cv2
 import numpy as np
 
+"""Example code showing how to display camera images from pupil core"""
 
 class FrameSub:
 

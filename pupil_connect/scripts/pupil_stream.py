@@ -1,16 +1,25 @@
 #!/usr/bin/env python
-
-
+import geometry_msgs.msg
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
 
-from pupil_msgs.msg import frame, gaze, pupil
+from pupil_msgs.msg import frame, gaze, pupil, surface, gaze_surface, fixation_surface
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Point
 
 from msgpack import loads
 import zmq
 import cv2
 import numpy as np
+
+
+def data2point(data):
+    point = geometry_msgs.msg.Point()
+    point.x = data[0]
+    point.y = data[1]
+    if len(data) > 2:
+        point.z = data[2]
+    return point
 
 
 class PupilStreamer:
@@ -19,6 +28,7 @@ class PupilStreamer:
 
     # TODO: Receive argument from ros console for ip and port. Make launch file + parameter file?
     def __init__(self, topics, ip="127.0.0.1", pupil_port="50020"):
+        self.surface_pub = None
         self.pupil_pub = None
         self.gaze_pub = None
         self.frame_pub = None
@@ -43,6 +53,8 @@ class PupilStreamer:
                 self.gaze_pub = rospy.Publisher('pupil_gaze', gaze, queue_size=120)
             elif topic == 'pupil':
                 self.pupil_pub = rospy.Publisher("pupil_pupil", pupil, queue_size=120)
+            elif topic == 'surface':
+                self.surface_pub = rospy.Publisher("pupil_surface", surface, queue_size=10)
 
     def publish(self):
         zmq_topic = self.sub.recv_string()
@@ -54,11 +66,71 @@ class PupilStreamer:
             payload["image_data"] = extra_frame
 
         if zmq_topic.startswith("gaze"):
-            pass
+            gaze_msg = gaze()
+            gaze_msg.topic = payload["topic"]
+            gaze_msg.confidence = payload["confidence"]
+            gaze_msg.timestamp = payload["timestamp"]
+            gaze_msg.eye_center_3d = data2point(payload["eye_center_3d"])  # 3 elements
+            gaze_msg.gaze_normal_3d = data2point(payload["gaze_normal_3d"])  # 3 elements
+            gaze_msg.gaze_point_3d = data2point(payload["gaze_point_3d"])  # 3 elements
+            gaze_msg.norm_pos = data2point(payload["norm_pos"])  # 2 elements
+            self.gaze_pub.publish(gaze_msg)
         elif zmq_topic.startswith("pupil."):
-            pass
-        if zmq_topic.startswith("frame.world"):
-
+            pupil_msg = pupil()
+            pupil_msg.id = payload["id"]
+            pupil_msg.topic = payload["topic"]
+            pupil_msg.method = payload["method"]
+            pupil_msg.norm_pos = data2point(payload["norm_pos"])  # 2 elements
+            pupil_msg.diameter = payload["diameter"]
+            pupil_msg.confidence = payload["confidence"]
+            pupil_msg.timestamp = payload["timestamp"]
+            pupil_msg.ellipse_center = data2point(payload["ellipse"].get("center"))  # 2 elements
+            pupil_msg.ellipse_axes = data2point(payload["ellipse"].get("axes"))  # 2 elements
+            pupil_msg.ellipse_angle = payload["ellipse"].get("angle")
+            if pupil_msg.method == "pye3d 0.3.0 real-time":
+                pupil_msg.sphere_center = data2point(payload["sphere"].get("center"))  # 3 elements
+                pupil_msg.sphere_radius = payload["sphere"].get("radius")
+                pupil_msg.projected_sphere_center = data2point(payload["projected_sphere"].get("center"))  # 2 elements
+                pupil_msg.projected_sphere_axes = data2point(payload["projected_sphere"].get("axes"))  # 2 elements
+                pupil_msg.projected_sphere_angle = payload["projected_sphere"].get("angle")
+                pupil_msg.circle_3d_center = data2point(payload["circle_3d"].get("center"))  # 3 elements
+                pupil_msg.circle_3d_normal = data2point(payload["circle_3d"].get("normal"))  # 3 elements
+                pupil_msg.circle_3d_radius = payload["circle_3d"].get("radius")
+                pupil_msg.diameter_3d = payload["diameter_3d"]
+                pupil_msg.location = data2point(payload["location"])  # 2 elements
+                pupil_msg.model_confidence = payload["model_confidence"]
+                pupil_msg.theta = payload["theta"]
+                pupil_msg.phi = payload["phi"]
+            self.pupil_pub.publish(pupil_msg)
+        elif zmq_topic.startswith("surfaces"):
+            surface_msg = surface()
+            surface_msg.topic = payload["topic"]
+            surface_msg.name = payload["name"]
+            # TODO: Implement rotation matrix to quaternion transformation
+            # surface_msg.surf_to_img_trans =
+            # surface_msg.img_to_surf_trans =
+            surface_msg.timestamp = payload["timestamp"]
+            for surface_gaze in payload["gaze_on_surfaces"]:
+                gazes_msg = gaze_surface()
+                gazes_msg.topic = surface_gaze["topic"]
+                gazes_msg.norm_pos = data2point(surface_gaze["norm_pos"])
+                gazes_msg.confidence = surface_gaze["confidence"]
+                gazes_msg.on_surf = surface_gaze["on_surf"]
+                gazes_msg.timestamp = surface_gaze["timestamp"]
+                surface_msg.gazes.append(gazes_msg)
+            for surface_fix in payload["fixations_on_surfaces"]:
+                fix_msg = fixation_surface()
+                fix_msg.topic = surface_fix["topic"]
+                fix_msg.norm_pos = data2point(surface_fix["norm_pos"])
+                fix_msg.confidence = surface_fix["confidence"]
+                fix_msg.on_surf = surface_fix["on_surf"]
+                fix_msg.timestamp = surface_fix["timestamp"]
+                fix_msg.id = surface_fix["id"]
+                fix_msg.duration = surface_fix["duration"]
+                fix_msg.dispersion = surface_fix["dispersion"]
+                surface_msg.fixations.append(fix_msg)
+            self.surface_pub.publish(surface_msg)
+        if zmq_topic.startswith("frame"):
             if payload["format"] != self.FRAME_FORMAT:
                 print(f"different frame format ({payload['format']});")
 
@@ -74,58 +146,11 @@ class PupilStreamer:
             self.frame_pub.publish(msg)
 
 
-
-# Why use all the string versions of the socket commands?
-# For non-ambiguous utf-8 encoding! Just stick to it
-# context = zmq.Context()
-# # open a req port to talk to pupil
-# addr = "127.0.0.1"  # remote ip or localhost
-# req_port = "50020"  # same as in the pupil remote gui
-# req = context.socket(zmq.REQ)
-# req.connect("tcp://{}:{}".format(addr, req_port))
-# # ask for the sub port
-# req.send_string("SUB_PORT")
-# sub_port = req.recv_string()
-#
-# sub = context.socket(zmq.SUB)
-# sub.connect("tcp://{}:{}".format(addr, sub_port))
-#
-#
-# #sub.setsockopt_string(zmq.SUBSCRIBE, "pupil.")
-# #sub.setsockopt_string(zmq.SUBSCRIBE, 'gaze')
-# # sub.setsockopt_string(zmq.SUBSCRIBE, 'notify.')
-# # sub.setsockopt_string(zmq.SUBSCRIBE, 'logging.')
-# # or everything:
-# sub.setsockopt_string(zmq.SUBSCRIBE, '')
-# sub.setsockopt_string(zmq.SUBSCRIBE, 'frame.eye.1')
-
-# Note to self:
-# Unlike all the other messages, the frames receive 3 parts from the socket.
-# First is topic, second is meta info and third the raw data.
-
-# while True:
-#     try:
-#         zmq_topic = sub.recv_string()
-#         zmq_hello = sub.recv_multipart()
-#         # zmq_topic = zmq_hello[0].decode('UTF-8') # might be better to use recv_string for topic and then use recv_multipart for rest?
-#         zmq_msg = loads(zmq_hello[0], raw=False)  # is a dictionary
-#         if len(zmq_hello) is 2:
-#             # zmq_msg["image_data"] = zmq_hello[2]
-#             pass
-#         print("\n{}: {}".format(zmq_topic, zmq_msg))
-#
-#         # topic = sub.recv_string()
-#         # msg = sub.recv()
-#         # msg = loads(msg, raw=False)
-#         # print("\n{}: {}".format(topic, msg))
-#     except KeyboardInterrupt:
-#         break
-
 if __name__ == '__main__':
     try:
         rospy.init_node('pupil_stream', anonymous=True)
         rate = rospy.Rate(500)
-        pupil_topics = ["frame"]
+        pupil_topics = ["frame", "surface"]
         pupil_stream = PupilStreamer(pupil_topics)
         pupil_stream.subscribe()
 

@@ -54,6 +54,9 @@ find_package(catkin REQUIRED COMPONENTS
    frame.msg
    gaze.msg
    pupil.msg
+   fixation_surface.msg
+   gaze_surface.msg
+   surface.msg
  )
 
 ## Generate services in the 'srv' folder
