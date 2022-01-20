@@ -166,6 +166,7 @@ add_executable(${PROJECT_NAME}_talker src/talker.cpp)
  catkin_install_python(PROGRAMS
    scripts/pupil_stream.py
    scripts/frame_sub.py
+   scripts/gaze_tracker.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
