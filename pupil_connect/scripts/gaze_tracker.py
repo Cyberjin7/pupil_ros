@@ -10,14 +10,17 @@ import pygame
 
 
 class AccuracyRecorder:
-    def __init__(self, screen, cross_length, wait=1, record=2, frequency=30):
+    def __init__(self, screen, cross_length, wait=1, record=2, frequency=60):
         self.target_screen = screen
         self.cross_length = cross_length
-        self.cross_color = (0, 0, 0)  # black color
+        self.cross_color = (0, 0, 0)
         self.wait_color = (255, 0, 0)
         self.record_color = (0, 255, 0)
-        self.circle_color = (0, 0, 255, 100)  # green color
+        self.circle_color = (0, 0, 255, 50)
         self.erase = pygame.Surface(size=screen.get_size())  # surface used to erase objects
+        self.gaze_surface = pygame.Surface(size=screen.get_size())
+        self.gaze_surface.set_alpha(80)
+        self.gaze_surface.fill((255, 255, 255))
         self.erase.fill((255, 255, 255))  # white color
         # List that stores horizontal and vertical Rects that together make a target cross.
         # Stores cross for current time step and (n-1)th time step.
@@ -41,6 +44,7 @@ class AccuracyRecorder:
         self.frequency = frequency
         self.target_iterator = 0
         self.gaze_list = np.zeros(shape=(self.record_time*self.frequency + 1, 2), dtype=np.int64)
+        self.average_accuracy = 0.
 
     def draw_target(self, target_center, record_color):
         self.current_cross[:2] = self.current_cross[2:]  # make current target previous target
@@ -76,17 +80,19 @@ class AccuracyRecorder:
                 if not self.watch_switch:
                     self.watch_switch = True
                     # Draw new gaze
-                    self.gaze[1] = pygame.draw.circle(screen,
+                    self.gaze[1] = pygame.draw.circle(self.gaze_surface,
                                                       self.circle_color,
                                                       [gaze_position[0] * resolution[0],
                                                        (1 - gaze_position[1]) * resolution[1]],
                                                       50,
                                                       0)
+                    self.target_screen.blit(self.gaze_surface, self.gaze[1], self.gaze[1])
                     pygame.display.update(self.gaze[1])  # Selectively update screen
                 else:
                     # Set current gaze to previous gaze and erase
                     self.gaze[0] = self.gaze[1]
                     self.target_screen.blit(self.erase, self.gaze[0], self.gaze[0])
+                    self.gaze_surface.blit(self.erase, self.gaze[0], self.gaze[0])
 
                     # Check if erased gaze overlaps with target cross. If it does, redraw target
                     if self.gaze[0].colliderect(self.current_cross[2]):
@@ -95,12 +101,13 @@ class AccuracyRecorder:
                         pygame.draw.rect(self.target_screen, self.cross_color, self.current_cross[3], 0)
 
                     # Draw new gaze
-                    self.gaze[1] = pygame.draw.circle(screen,
+                    self.gaze[1] = pygame.draw.circle(self.gaze_surface,
                                                       self.circle_color,
                                                       [gaze_position[0] * resolution[0],
                                                        (1 - gaze_position[1]) * resolution[1]],
                                                       50,
                                                       0)
+                    self.target_screen.blit(self.gaze_surface, self.gaze[1], self.gaze[1])
                     pygame.display.update(self.gaze + self.current_cross[2:])  # Selectively update screen
             else:
                 # watch_switch used to erase gaze at first loop the gaze leaves surface.
@@ -108,6 +115,7 @@ class AccuracyRecorder:
                 if self.watch_switch:
                     # Erase gaze
                     self.target_screen.blit(self.erase, self.gaze[1], self.gaze[1])
+                    self.gaze_surface.blit(self.erase, self.gaze[1], self.gaze[1])
                     # If gaze overlaps target, redraw target
                     if self.gaze[1].colliderect(self.current_cross[2]):
                         pygame.draw.rect(self.target_screen, self.cross_color, self.current_cross[2], 0)
@@ -155,6 +163,8 @@ class AccuracyRecorder:
                     self.record_switch = False
                 # If no targets left: reset all experiment parameters to init
                 else:
+                    self.average_accuracy = np.average(np.array(self.accuracy_list))
+                    print("The average pixel error is: ", self.average_accuracy)
                     self.accuracy_test = False
                     self.test_in_progress = False
                     self.record_switch = False
@@ -163,6 +173,8 @@ class AccuracyRecorder:
                     self.target_screen.blit(self.erase, self.current_cross[2], self.current_cross[2])
                     self.target_screen.blit(self.erase, self.current_cross[3], self.current_cross[3])
                     pygame.display.update(self.current_cross[2:])
+                    self.current_cross = [pygame.Rect(0, 0, 0, 0), pygame.Rect(0, 0, 0, 0),
+                                          pygame.Rect(0, 0, 0, 0), pygame.Rect(0, 0, 0, 0)]
 
 
 if __name__ == '__main__':
@@ -184,17 +196,24 @@ if __name__ == '__main__':
 
     pygame.display.flip()
 
-    recorder = AccuracyRecorder(screen, 100)
-    recorder.target_list = [(resolution[0]*0.25, resolution[1]*0.25),
-                            (resolution[0]*0.75, resolution[1]*0.25),
-                            (resolution[0]*0.75, resolution[1]*0.75),
-                            (resolution[0]*0.25, resolution[1]*0.75),
-                            (resolution[0]*0.5, resolution[1]*0.5)]
+    recorder = AccuracyRecorder(screen,
+                                100,
+                                wait=rospy.get_param('gaze_tracker/wait_period'),
+                                record=rospy.get_param('gaze_tracker/record_period'),
+                                frequency=rospy.get_param('gaze_tracker/ros_frequency'))
 
-    test = np.asarray((1, 2, 3))
-    test2 = np.zeros((4, 3))
-    test3 = test2 - test
-    print(test3)
+    targets = rospy.get_param("gaze_tracker/targets")
+
+    for target in targets:
+        recorder.target_list.append((resolution[0]*target[0], resolution[1]*target[1]))
+
+    print(recorder.target_list)
+
+    # recorder.target_list = [(resolution[0]*0.25, resolution[1]*0.25),
+    #                         (resolution[0]*0.75, resolution[1]*0.25),
+    #                         (resolution[0]*0.75, resolution[1]*0.75),
+    #                         (resolution[0]*0.25, resolution[1]*0.75),
+    #                         (resolution[0]*0.5, resolution[1]*0.5)]
 
     try:
         rospy.init_node('gaze_tracker', anonymous=True)

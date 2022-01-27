@@ -54,7 +54,7 @@ class PupilStreamer:
             elif topic == 'pupil':
                 self.pupil_pub = rospy.Publisher("pupil_pupil", pupil, queue_size=120)
             elif topic == 'surface':
-                self.surface_pub = rospy.Publisher("pupil_surface", surface, queue_size=10)
+                self.surface_pub = rospy.Publisher("pupil_surface", surface, queue_size=120)
 
     def publish(self):
         zmq_topic = self.sub.recv_string()
@@ -149,7 +149,7 @@ class PupilStreamer:
 if __name__ == '__main__':
     try:
         rospy.init_node('pupil_stream', anonymous=True)
-        rate = rospy.Rate(500)
+        rate = rospy.Rate(600)
         pupil_topics = ["frame", "surface"]
         pupil_stream = PupilStreamer(pupil_topics)
         pupil_stream.subscribe()

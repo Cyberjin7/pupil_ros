@@ -1,0 +1,5 @@
+wait_period: 2
+record_period: 1
+ros_frequency: 60
+targets: [[0.25, 0.25],
+          [0.75, 0.25]]
