@@ -48,7 +48,7 @@ class PupilStreamer:
         for topic in self.topics:
             self.sub.setsockopt_string(zmq.SUBSCRIBE, topic)
             if topic == 'frame':
-                self.frame_pub = rospy.Publisher('pupil_frame', frame, queue_size=260)
+                self.frame_pub = rospy.Publisher('pupil_frame', frame, queue_size=300)
             elif topic == 'gaze':
                 self.gaze_pub = rospy.Publisher('pupil_gaze', gaze, queue_size=120)
             elif topic == 'pupil':
@@ -149,8 +149,8 @@ class PupilStreamer:
 if __name__ == '__main__':
     try:
         rospy.init_node('pupil_stream', anonymous=True)
-        rate = rospy.Rate(600)
-        pupil_topics = ["frame", "surface"]
+        rate = rospy.Rate(660)
+        pupil_topics = rospy.get_param('pupil_stream/topics')  # ["frame", "surface"]
         pupil_stream = PupilStreamer(pupil_topics)
         pupil_stream.subscribe()
 

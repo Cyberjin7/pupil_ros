@@ -8,10 +8,13 @@ from pupil_msgs.msg import surface
 import numpy as np
 import pygame
 
+# from screeninfo import get_monitors
+
 
 class AccuracyRecorder:
     def __init__(self, screen, cross_length, wait=1, record=2, frequency=60):
         self.target_screen = screen
+        self.screen_resolution = pygame.display.get_window_size()
         self.cross_length = cross_length
         self.cross_color = (0, 0, 0)
         self.wait_color = (255, 0, 0)
@@ -82,8 +85,8 @@ class AccuracyRecorder:
                     # Draw new gaze
                     self.gaze[1] = pygame.draw.circle(self.gaze_surface,
                                                       self.circle_color,
-                                                      [gaze_position[0] * resolution[0],
-                                                       (1 - gaze_position[1]) * resolution[1]],
+                                                      [gaze_position[0] * self.screen_resolution[0],
+                                                       (1 - gaze_position[1]) * self.screen_resolution[1]],
                                                       50,
                                                       0)
                     self.target_screen.blit(self.gaze_surface, self.gaze[1], self.gaze[1])
@@ -103,8 +106,8 @@ class AccuracyRecorder:
                     # Draw new gaze
                     self.gaze[1] = pygame.draw.circle(self.gaze_surface,
                                                       self.circle_color,
-                                                      [gaze_position[0] * resolution[0],
-                                                       (1 - gaze_position[1]) * resolution[1]],
+                                                      [gaze_position[0] * self.screen_resolution[0],
+                                                       (1 - gaze_position[1]) * self.screen_resolution[1]],
                                                       50,
                                                       0)
                     self.target_screen.blit(self.gaze_surface, self.gaze[1], self.gaze[1])
@@ -208,12 +211,6 @@ if __name__ == '__main__':
         recorder.target_list.append((resolution[0]*target[0], resolution[1]*target[1]))
 
     print(recorder.target_list)
-
-    # recorder.target_list = [(resolution[0]*0.25, resolution[1]*0.25),
-    #                         (resolution[0]*0.75, resolution[1]*0.25),
-    #                         (resolution[0]*0.75, resolution[1]*0.75),
-    #                         (resolution[0]*0.25, resolution[1]*0.75),
-    #                         (resolution[0]*0.5, resolution[1]*0.5)]
 
     try:
         rospy.init_node('gaze_tracker', anonymous=True)
