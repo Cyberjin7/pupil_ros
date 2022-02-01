@@ -3,7 +3,7 @@ import geometry_msgs.msg
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
 
-from pupil_msgs.msg import frame, gaze, pupil, surface, gaze_surface, fixation_surface
+from pupil_msgs.msg import frame, gaze, pupil, surface, gaze_surface, fixation_surface, frames
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point
 
@@ -43,18 +43,23 @@ class PupilStreamer:
         self.sub.connect("tcp://{}:{}".format(self.addr, self.sub_port))
         self.topics = topics
         self.cv_bridge = CvBridge()
+        self.frames_list = frames()
 
     def subscribe(self):
         for topic in self.topics:
             self.sub.setsockopt_string(zmq.SUBSCRIBE, topic)
             if topic == 'frame':
-                self.frame_pub = rospy.Publisher('pupil_frame', frame, queue_size=300)
+                self.frame_pub = rospy.Publisher('pupil_frame', frames, queue_size=300)
+                print("Publishing frame data")
             elif topic == 'gaze':
                 self.gaze_pub = rospy.Publisher('pupil_gaze', gaze, queue_size=120)
+                print("Publishing gaze data")
             elif topic == 'pupil':
                 self.pupil_pub = rospy.Publisher("pupil_pupil", pupil, queue_size=120)
+                print("Publishing pupil data")
             elif topic == 'surface':
                 self.surface_pub = rospy.Publisher("pupil_surface", surface, queue_size=120)
+                print("Publishing surface data")
 
     def publish(self):
         zmq_topic = self.sub.recv_string()
@@ -130,27 +135,37 @@ class PupilStreamer:
                 fix_msg.dispersion = surface_fix["dispersion"]
                 surface_msg.fixations.append(fix_msg)
             self.surface_pub.publish(surface_msg)
-        if zmq_topic.startswith("frame"):
+        elif zmq_topic.startswith("frame"):
             if payload["format"] != self.FRAME_FORMAT:
                 print(f"different frame format ({payload['format']});")
 
-            msg = frame()
-            msg.topic = payload["topic"]
-            msg.width = payload["width"]
-            msg.height = payload["height"]
-            msg.index = payload["index"]
-            msg.timestamp = payload["timestamp"]
-            msg.format = payload["format"]
+            frame_msg = frame()
+            frame_msg.topic = payload["topic"]
+            frame_msg.width = payload["width"]
+            frame_msg.height = payload["height"]
+            frame_msg.index = payload["index"]
+            frame_msg.timestamp = payload["timestamp"]
+            frame_msg.format = payload["format"]
             cv_image = np.frombuffer(payload["image_data"][0], dtype=np.uint8).reshape(payload["height"], payload["width"], 3)
-            msg.image = self.cv_bridge.cv2_to_imgmsg(cv_image, encoding="bgr8")
-            self.frame_pub.publish(msg)
+            frame_msg.image = self.cv_bridge.cv2_to_imgmsg(cv_image, encoding="bgr8")
+
+            topic_list = [x.topic for x in self.frames_list.frames]
+            if frame_msg.topic not in topic_list:
+                self.frames_list.frames.append(frame_msg)
+            else:
+                frame_index = topic_list.index(frame_msg.topic)
+                self.frames_list.frames[frame_index] = frame_msg
+
+            if len(self.frames_list.frames) == 3:
+                self.frame_pub.publish(self.frames_list)
+                self.frames_list.frames.clear()
 
 
 if __name__ == '__main__':
     try:
         rospy.init_node('pupil_stream', anonymous=True)
         rate = rospy.Rate(660)
-        pupil_topics = rospy.get_param('pupil_stream/topics')  # ["frame", "surface"]
+        pupil_topics = rospy.get_param('pupil_stream/topics')
         pupil_stream = PupilStreamer(pupil_topics)
         pupil_stream.subscribe()
 

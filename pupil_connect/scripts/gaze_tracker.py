@@ -7,15 +7,15 @@ from pupil_msgs.msg import surface
 
 import numpy as np
 import pygame
+from screeninfo import get_monitors
+import math
 
-# from screeninfo import get_monitors
 
-
-class AccuracyRecorder:
-    def __init__(self, screen, cross_length, wait=1, record=2, frequency=60):
+class GazeTracker:
+    def __init__(self, screen, distance, wait=1, record=2, frequency=60):
         self.target_screen = screen
         self.screen_resolution = pygame.display.get_window_size()
-        self.cross_length = cross_length
+        self.cross_length = 100
         self.cross_color = (0, 0, 0)
         self.wait_color = (255, 0, 0)
         self.record_color = (0, 255, 0)
@@ -46,8 +46,16 @@ class AccuracyRecorder:
         self.record_switch = False
         self.frequency = frequency
         self.target_iterator = 0
-        self.gaze_list = np.zeros(shape=(self.record_time*self.frequency + 1, 2), dtype=np.int64)
+        # self.gaze_list = np.zeros(shape=(self.record_time*self.frequency + 1, 2), dtype=np.int64)
+        self.gaze_list = np.zeros(shape=(self.record_time * self.frequency + 1, 3), dtype=np.int64)
         self.average_accuracy = 0.
+
+        self.distance = distance
+        for monitor in get_monitors():
+            if monitor.is_primary:
+                self.monitor = monitor
+        self.pixel_size = math.sqrt(pow(self.monitor.width_mm, 2) + pow(self.monitor.height_mm, 2))/math.sqrt(pow(self.monitor.width, 2) + pow(self.monitor.height, 2))
+        self.screen_center = numpy.array([self.pixel_size*self.monitor.width/2, self.pixel_size*self.monitor.height/2, -distance])
 
     def draw_target(self, target_center, record_color):
         self.current_cross[:2] = self.current_cross[2:]  # make current target previous target
@@ -151,12 +159,23 @@ class AccuracyRecorder:
         elif self.record_switch:
             # During record period: record gaze data
             if self.timer <= self.frequency*self.record_time:
-                self.gaze_list[self.timer, :] = self.gaze[1].center
+                # self.gaze_list[self.timer, :] = self.gaze[1].center
+                self.gaze_list[self.timer, :2] = self.gaze[1].center
                 self.timer = self.timer + 1
             else:
                 # Once done recording: calculate accuracy. Reset timer
-                distance = self.gaze_list - np.asarray(self.target_list[self.target_iterator])
-                self.accuracy_list.append(np.average(numpy.linalg.norm(distance, ord=2, axis=1)))
+                a = np.average(numpy.linalg.norm(self.gaze_list*self.pixel_size - self.screen_center, ord=2, axis=1))
+                b = np.average(numpy.linalg.norm(self.target_list[self.target_iterator]*self.pixel_size - self.screen_center, ord=2))
+                c = np.average(numpy.linalg.norm(self.gaze_list - np.asarray(self.target_list[self.target_iterator]), ord=2, axis=1)*self.pixel_size)
+                angle = np.arccos((np.square(a)+np.square(b)-np.square(c))/(2*a*b))
+                print("Target: ", self.target_iterator+1)
+                print("a: ", a)
+                print("b: ", b)
+                print("c: ", c)
+                print("Angle Error: ", angle, "\n")
+                # distance = self.gaze_list - np.asarray(self.target_list[self.target_iterator])
+                # self.accuracy_list.append(np.average(numpy.linalg.norm(distance, ord=2, axis=1)))
+                self.accuracy_list.append(np.rad2deg(angle))
                 self.timer = 0
                 # If there are targets left: draw the next target and switch to wait period
                 if self.target_iterator < len(self.target_list)-1:
@@ -167,10 +186,12 @@ class AccuracyRecorder:
                 # If no targets left: reset all experiment parameters to init
                 else:
                     self.average_accuracy = np.average(np.array(self.accuracy_list))
-                    print("The average pixel error is: ", self.average_accuracy)
+                    # print("The average pixel error is: ", self.average_accuracy)
+                    print("The average angular gaze error is: ", self.average_accuracy)
                     self.accuracy_test = False
                     self.test_in_progress = False
                     self.record_switch = False
+                    self.gaze_list = np.zeros(shape=(self.record_time * self.frequency + 1, 3), dtype=np.int64)
                     self.target_iterator = 0
                     self.timer = 0
                     self.target_screen.blit(self.erase, self.current_cross[2], self.current_cross[2])
@@ -199,18 +220,19 @@ if __name__ == '__main__':
 
     pygame.display.flip()
 
-    recorder = AccuracyRecorder(screen,
-                                100,
-                                wait=rospy.get_param('gaze_tracker/wait_period'),
-                                record=rospy.get_param('gaze_tracker/record_period'),
-                                frequency=rospy.get_param('gaze_tracker/ros_frequency'))
+    recorder = GazeTracker(screen,
+                           distance=rospy.get_param('gaze_tracker/meta_data/d2s'),
+                           wait=rospy.get_param('gaze_tracker/wait_period'),
+                           record=rospy.get_param('gaze_tracker/record_period'),
+                           frequency=rospy.get_param('gaze_tracker/ros_frequency'))
 
     targets = rospy.get_param("gaze_tracker/targets")
 
     for target in targets:
-        recorder.target_list.append((resolution[0]*target[0], resolution[1]*target[1]))
+        # recorder.target_list.append((resolution[0]*target[0], resolution[1]*target[1], 0))
+        recorder.target_list.append(np.array([resolution[0] * target[0], resolution[1] * target[1], 0]))
 
-    print(recorder.target_list)
+    # print(recorder.target_list)
 
     try:
         rospy.init_node('gaze_tracker', anonymous=True)
