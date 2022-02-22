@@ -22,6 +22,8 @@ pip install pyzmq msgpack opencv-python screeninfo pygame
 ## Running 
 1. Open pupil capture
 2. Adjust cameras, and focus. Move your eyes around until blue circle is surrounding your eye
+    2.1 If cameras are not recognized run in a terminal sudo usermod -a -G plugdev $USER and restart computer
+
 3. open the word camera view and press c to start the calibration. Then follow the blue/red dot with your gaze. Afterward, check the accuracy and if it is not high enough, redo the calibration. 
 4. In the world camera view window, click on Plugin Manager on the right side and activate Surface Tracker. 
 5. Once the QR-codes are recognized (they turn green), click on Add surface and then on the camera stream click on edit surface. Then zou can drag the red dots to the edges of the screen and click again on edit surface to save the configuration. 
