@@ -15,9 +15,23 @@ Required python packages:
 - msgpack
 - opencv
 - numpy
+- screeninfo
 ```
-pip install pyzmq msgpack opencv-python
+pip install pyzmq msgpack opencv-python screeninfo pygame
 ```
+## Running 
+1. Open pupil capture
+2. Adjust cameras, and focus. Move your eyes around until blue circle is surrounding your eye
+3. open the word camera view and press c to start the calibration. Then follow the blue/red dot with your gaze. Afterward, check the accuracy and if it is not high enough, redo the calibration. 
+4. In the world camera view window, click on Plugin Manager on the right side and activate Surface Tracker. 
+5. Once the QR-codes are recognized (they turn green), click on Add surface and then on the camera stream click on edit surface. Then zou can drag the red dots to the edges of the screen and click again on edit surface to save the configuration. 
+6. On the Video Source menu on the right you can change the frame rate to 60 Hz. 
+7. Go to the Network API menu on the right and change the frame publisher format to BGR. 
+8. Go to the ros workspace, source it and run roslaunch pupil_connect pupil_stream.launch, 
+9. The run roslaunch pupil_connect gaze_tracking.launch
+
+How to enable gaze tracking:
+1. go to the launch/config/pupil_topics.yaml and add gaze in the array. If you restart the pupil_stream.launch, you will then find the /pupil_gaze topic with the norm_pos which is showing the x and y positions of the gaze vector/point. 
 
 ## Setup
 
