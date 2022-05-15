@@ -5,4 +5,4 @@ geometry_msgs/Point norm_pos
 string topic
 float64 confidence
 float64 timestamp
-# pupil_ros base_data
+# pupil_msgs/pupil[] base_data

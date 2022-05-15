@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>pupil_connect</name>
+  <name>rqt_test</name>
   <version>0.0.0</version>
-  <description>The pupil_connect package</description>
+  <description>The rqt_test package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="ics-student@todo.todo">ics-student</maintainer>
+  <maintainer email="jin@todo.todo">jin</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/pupil_connect</url> -->
+  <!-- <url type="website">http://wiki.ros.org/rqt_test</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -49,23 +49,21 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>pupil_msgs</build_depend>
-  <build_depend>roscpp</build_depend>
-  <build_depend>rospy</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>cv_bridge</build_depend>
   <build_depend>rosbag</build_depend>
-  <build_export_depend>pupil_msgs</build_export_depend>
-  <build_export_depend>roscpp</build_export_depend>
-  <build_export_depend>rospy</build_export_depend>
-  <build_export_depend>std_msgs</build_export_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>rqt_bag</build_depend>
+  <build_depend>rqt_gui</build_depend>
+  <build_depend>rqt_gui_py</build_depend>
   <build_export_depend>rosbag</build_export_depend>
-  <exec_depend>pupil_msgs</exec_depend>
-  <exec_depend>roscpp</exec_depend>
-  <exec_depend>rospy</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>cv_bridge</exec_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>rqt_bag</build_export_depend>
+  <build_export_depend>rqt_gui</build_export_depend>
+  <build_export_depend>rqt_gui_py</build_export_depend>
   <exec_depend>rosbag</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>rqt_bag</exec_depend>
+  <exec_depend>rqt_gui</exec_depend>
+  <exec_depend>rqt_gui_py</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

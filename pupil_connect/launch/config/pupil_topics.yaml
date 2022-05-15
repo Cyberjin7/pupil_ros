@@ -1,3 +1,3 @@
-topics: ["surface", "frame"]
+topics: ["gaze", "frame"]
 
-# other topics: gaze, pupil
+# other topics: gaze, pupil, surface
