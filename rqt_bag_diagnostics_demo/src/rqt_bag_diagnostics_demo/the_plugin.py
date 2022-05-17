@@ -59,6 +59,9 @@ class DiagnosticPanel(TopicMessageView):
         print("Time is: ", t)
         print("Message is: ", msg)
         # self.widget.update()
+        bag, entry = self.timeline.get_entry(t, 'seq2')
+        topic2, msg2, t2 = self.timeline.read_message(bag, entry.position)
+        print(msg2)
 
 
     def paintEvent(self, event):
