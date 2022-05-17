@@ -75,8 +75,9 @@ class PupilStreamer:
             gaze_msg.topic = payload["topic"]
             gaze_msg.confidence = payload["confidence"]
             gaze_msg.timestamp = payload["timestamp"]
-            gaze_msg.eye_center_3d = data2point(payload["eye_center_3d"])  # 3 elements
-            gaze_msg.gaze_normal_3d = data2point(payload["gaze_normal_3d"])  # 3 elements
+            # TODO: eye_center_3d and gaze_normal_3d key differs depending if monocular or binocular. Account for this
+            # gaze_msg.eye_center_3d = data2point(payload["eye_center_3d"])  # 3 elements
+            # gaze_msg.gaze_normal_3d = data2point(payload["gaze_normal_3d"])  # 3 elements
             gaze_msg.gaze_point_3d = data2point(payload["gaze_point_3d"])  # 3 elements
             gaze_msg.norm_pos = data2point(payload["norm_pos"])  # 2 elements
             self.gaze_pub.publish(gaze_msg)
