@@ -58,14 +58,14 @@ class FrameView(ImageView):
     def message_viewed(self, bag, msg_details):
         TopicMessageView.message_viewed(self, bag, msg_details)
         topic, msg, t = msg_details[:3]
-        for frame in msg.frames:
-            if frame.topic == 'frame.world':
-                self.world_frame = frame.image
+        # for frame in msg.frames:
+        #     if frame.topic == 'frame.world':
+        #         self.world_frame = frame.image
 
         if not msg:
             self.set_image(None, topic, 'no message')
         else:
-            self.set_image(self.world_frame, topic, t)  # temporary time until I implement synced time
+            self.set_image(msg.image, topic, t)  # temporary time until I implement synced time
         if t is None:
             self.message_cleared()
         else:

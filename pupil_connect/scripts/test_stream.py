@@ -2,7 +2,7 @@ from msgpack import loads
 import zmq
 import cv2
 import numpy as np
-from cv_bridge import CvBridge, CvBridgeError
+# from cv_bridge import CvBridge, CvBridgeError
 
 """
 Script to quickly output data from pupil core
@@ -28,11 +28,11 @@ sub.connect("tcp://{}:{}".format(addr, sub_port))
 
 # sub.setsockopt_string(zmq.SUBSCRIBE, "pupil.")
 # sub.setsockopt_string(zmq.SUBSCRIBE, 'gaze')
-sub.setsockopt_string(zmq.SUBSCRIBE, "surfaces.")
+# sub.setsockopt_string(zmq.SUBSCRIBE, "surfaces.")
 # # sub.setsockopt_string(zmq.SUBSCRIBE, 'notify.')
 # # sub.setsockopt_string(zmq.SUBSCRIBE, 'logging.')
 # or everything:
-# sub.setsockopt_string(zmq.SUBSCRIBE, '')
+sub.setsockopt_string(zmq.SUBSCRIBE, '')
 # sub.setsockopt_string(zmq.SUBSCRIBE, 'frame.eye.1')
 
 # Note to self:

@@ -32,6 +32,8 @@ class PupilStreamer:
         self.pupil_pub = None
         self.gaze_pub = None
         self.frame_pub = None
+        self.world_pub = None
+        self.eyes_pub = None
         self.context = zmq.Context()
         self.addr = ip
         self.req_port = pupil_port
@@ -49,8 +51,16 @@ class PupilStreamer:
         for topic in self.topics:
             self.sub.setsockopt_string(zmq.SUBSCRIBE, topic)
             if topic == 'frame':
-                self.frame_pub = rospy.Publisher('pupil_frame', frames, queue_size=300)
-                print("Publishing frame data")
+                # self.frame_pub = rospy.Publisher('pupil_frame', frames, queue_size=300)
+                self.world_pub = rospy.Publisher('pupil_world', frame, queue_size=60)
+                self.eyes_pub = rospy.Publisher('pupil_eyes', frame, queue_size=120)
+                print("Publishing world and eye frame data")
+            # elif topic == 'world':
+            #     self.world_pub = rospy.Publisher('pupil_world', frame, queue_size=60)
+            #     print("Publishing world frame data")
+            # elif topic == 'eyes':
+            #     self.eyes_pub = rospy.Publisher('pupil_eyes', frame, queue_size=120)
+            #     print("Publishing eye frame data")
             elif topic == 'gaze':
                 self.gaze_pub = rospy.Publisher('pupil_gaze', gaze, queue_size=120)
                 print("Publishing gaze data")
@@ -150,22 +160,27 @@ class PupilStreamer:
             cv_image = np.frombuffer(payload["image_data"][0], dtype=np.uint8).reshape(payload["height"], payload["width"], 3)
             frame_msg.image = self.cv_bridge.cv2_to_imgmsg(cv_image, encoding="bgr8")
 
-            topic_list = [x.topic for x in self.frames_list.frames]
-            if frame_msg.topic not in topic_list:
-                self.frames_list.frames.append(frame_msg)
-            else:
-                frame_index = topic_list.index(frame_msg.topic)
-                self.frames_list.frames[frame_index] = frame_msg
+            # topic_list = [x.topic for x in self.frames_list.frames]
+            # if frame_msg.topic not in topic_list:
+            #     self.frames_list.frames.append(frame_msg)
+            # else:
+            #     frame_index = topic_list.index(frame_msg.topic)
+            #     self.frames_list.frames[frame_index] = frame_msg
+            #
+            # if len(self.frames_list.frames) == 3:
+            #     self.frame_pub.publish(self.frames_list)
+            #     self.frames_list.frames.clear()
 
-            if len(self.frames_list.frames) == 3:
-                self.frame_pub.publish(self.frames_list)
-                self.frames_list.frames.clear()
+            if frame_msg.topic.startswith('frame.world'):
+                self.world_pub.publish(frame_msg)
+            elif frame_msg.topic.startswith('frame.eye'):
+                self.eyes_pub.publish(frame_msg)
 
 
 if __name__ == '__main__':
     try:
         rospy.init_node('pupil_stream', anonymous=True)
-        rate = rospy.Rate(660)
+        rate = rospy.Rate(660)  # rospy.Rate(660)
         pupil_topics = rospy.get_param('pupil_stream/topics')
         pupil_stream = PupilStreamer(pupil_topics)
         pupil_stream.subscribe()
