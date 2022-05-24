@@ -90,6 +90,7 @@ class FrameView(ImageView):
                 self.timeline._timeline_frame.playhead = entry.time
                 break
 
+    # TODO: skips entries. fix
     def navigate_previous(self):
         last_entry = None
         last_bag = None

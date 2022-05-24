@@ -172,6 +172,7 @@ add_executable(${PROJECT_NAME}_talker src/talker.cpp)
    scripts/bag_read.py
    scripts/bag_append.py
    scripts/bag_retime.py
+   scripts/bag_reorder.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
