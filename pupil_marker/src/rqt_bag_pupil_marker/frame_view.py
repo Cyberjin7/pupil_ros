@@ -8,15 +8,15 @@ from PIL.ImageQt import ImageQt
 import sys
 
 from python_qt_binding import QT_BINDING_MODULES
-from python_qt_binding.QtGui import QPen, QBrush
+from python_qt_binding.QtGui import QPen, QBrush, QPixmap
 from python_qt_binding.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox, QVBoxLayout, QHBoxLayout
-from python_qt_binding.QtCore import QRectF
+from python_qt_binding.QtCore import QRectF, Qt
 
 # for code completion. Comment out when running code
 # from PyQt5.QtGui import QPixmap
 # from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox
-from PyQt5.QtCore import QRectF
-from PyQt5.QtGui import QPen, QBrush
+from PyQt5.QtCore import QRectF, Qt
+from PyQt5.QtGui import QPen, QBrush, QPixmap
 
 
 class FrameView(ImageView):
@@ -51,6 +51,9 @@ class FrameView(ImageView):
         # parent.layout().addWidget(self.box1)
         # print(type(parent))
         self.topics = timeline._get_topics()  # once I know which topics are needed, will filter list accordingly
+        self.pen = QPen()
+        self.brush = QBrush(Qt.green, Qt.SolidPattern)
+        self.resize = None
 
     def make_box(self, name):
         self.box1 = QGroupBox(name)
@@ -72,13 +75,35 @@ class FrameView(ImageView):
         else:
             if topic == 'pupil_world':
                 self.set_image(msg.image, topic, t)  # temporary time until I implement synced time
+                # self._scene.addEllipse(QRectF(50, 100, 20, 20), self.pen, self.brush)
             elif topic == 'pupil_gaze':
-                self._scene.addEllipse(QRectF(50, 50, 10, 10), QPen(), QBrush())
+                # self._scene.addEllipse(QRectF(50, 100, 20, 20), self.pen, self.brush)
+                try:
+                    self._scene.addEllipse(QRectF(self.resize[0]*msg.norm_pos.x, self.resize[1]*(1 - msg.norm_pos.y), 20, 20), self.pen, self.brush)
+                except TypeError:
+                    print('Image topic has not been published yet, will not render gaze points.')
 
         if t is None:
             self.message_cleared()
         else:
             self.message_tree.set_message(msg)
+
+    def put_image_into_scene(self):
+        if self._image:
+            scale_factor = min(
+                float(self._image_view.size().width() - 2) / self._image.size[0],
+                float(self._image_view.size().height() - 2) / self._image.size[1])
+            resized_image = self._image.resize(
+                (int(scale_factor * self._image.size[0]),
+                 int(scale_factor * self._image.size[1])),
+                self.quality)
+
+            self.resize = resized_image.size
+
+            QtImage = ImageQt(resized_image)
+            pixmap = QPixmap.fromImage(QtImage)
+            self._scene.clear()
+            self._scene.addPixmap(pixmap)
 
     def message_cleared(self):
         super(ImageView, self).message_cleared()
