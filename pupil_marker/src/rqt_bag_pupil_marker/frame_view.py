@@ -9,7 +9,7 @@ import sys
 
 from python_qt_binding import QT_BINDING_MODULES
 from python_qt_binding.QtGui import QPen, QBrush, QPixmap
-from python_qt_binding.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox, QVBoxLayout, QHBoxLayout
+from python_qt_binding.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox, QVBoxLayout, QHBoxLayout, QApplication
 from python_qt_binding.QtCore import QRectF, Qt
 
 # for code completion. Comment out when running code
@@ -17,6 +17,7 @@ from python_qt_binding.QtCore import QRectF, Qt
 # from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox
 from PyQt5.QtCore import QRectF, Qt
 from PyQt5.QtGui import QPen, QBrush, QPixmap
+from PyQt5.QtWidgets import QApplication
 
 
 class FrameView(ImageView):
@@ -54,6 +55,18 @@ class FrameView(ImageView):
         self.pen = QPen()
         self.brush = QBrush(Qt.green, Qt.SolidPattern)
         self.resize = None
+        # print(parent.objectName())
+        # self.widget_list = QApplication.allWidgets()
+        # for widget in self.widget_list:
+        #     print(widget.objectName())
+
+        # lines 256 and 266 are the infos you need to get pointer to other open plots. get_context and popup_name
+        print(type(self.timeline.popups))
+        print(len(self.timeline.popups))
+        for popup in self.timeline.popups:
+            print(popup)
+
+
 
     def make_box(self, name):
         self.box1 = QGroupBox(name)
