@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget
 
 
-class PupilMarkerPlugin(Plugin):
+class PupilGazePlugin(Plugin):
     def __init__(self):
         pass
 
