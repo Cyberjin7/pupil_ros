@@ -3,7 +3,7 @@ import geometry_msgs.msg
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
 
-from pupil_msgs.msg import frame, gaze, pupil, surface, gaze_surface, fixation_surface, frames
+from pupil_msgs.msg import frame, gaze, pupil, surface, gaze_surface, fixation_surface, frames, fixation
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point
 
@@ -34,6 +34,7 @@ class PupilStreamer:
         self.frame_pub = None
         self.world_pub = None
         self.eyes_pub = None
+        self.fixation_pub = None
         self.context = zmq.Context()
         self.addr = ip
         self.req_port = pupil_port
@@ -70,6 +71,9 @@ class PupilStreamer:
             elif topic == 'surface':
                 self.surface_pub = rospy.Publisher("pupil_surface", surface, queue_size=120)
                 print("Publishing surface data")
+            elif topic == 'fixation':
+                self.fixation_pub = rospy.Publisher('pupil_fixation', fixation, queue_size=120)
+                print("Publishing fixation data")
 
     def publish(self):
         zmq_topic = self.sub.recv_string()
@@ -175,6 +179,23 @@ class PupilStreamer:
                 self.world_pub.publish(frame_msg)
             elif frame_msg.topic.startswith('frame.eye'):
                 self.eyes_pub.publish(frame_msg)
+        elif zmq_topic.startswith("fixation"):
+            fixation_msg = fixation()
+            fixation_msg.topic = payload["topic"]
+            fixation_msg.id = payload["id"]
+            fixation_msg.timestamp = payload["timestamp"]
+            fixation_msg.duration = payload["duration"]
+            fixation_msg.norm_pos[0] = payload["norm_pos"][0]
+            fixation_msg.norm_pos[1] = payload["norm_pos"][1]
+            fixation_msg.dispersion = payload["dispersion"]
+            fixation_msg.confidence = payload["confidence"]
+            fixation_msg.method = payload["method"]
+            if fixation_msg.method == "3d gaze":
+                fixation_msg.gaze_point_3d = data2point(payload["gaze_point_3d"])
+            fixation_msg.base_data = []
+            for data in payload["base_data"]:
+                fixation_msg.base_data.append(data[1])
+            self.fixation_pub.publish(fixation_msg)
 
 
 if __name__ == '__main__':

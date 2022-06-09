@@ -32,7 +32,8 @@ sub.connect("tcp://{}:{}".format(addr, sub_port))
 # # sub.setsockopt_string(zmq.SUBSCRIBE, 'notify.')
 # # sub.setsockopt_string(zmq.SUBSCRIBE, 'logging.')
 # or everything:
-sub.setsockopt_string(zmq.SUBSCRIBE, '')
+# sub.setsockopt_string(zmq.SUBSCRIBE, '')
+sub.setsockopt_string(zmq.SUBSCRIBE,'fixations')
 # sub.setsockopt_string(zmq.SUBSCRIBE, 'frame.eye.1')
 
 # Note to self:
