@@ -17,6 +17,7 @@ from PyQt5.QtGui import QPen, QBrush, QPixmap
 
 from PyQt5.QtWidgets import QApplication, QGraphicsPixmapItem, QComboBox, QLabel
 
+import numpy as np
 
 class GazeView(ImageView):
     name = 'Gaze'
@@ -71,7 +72,8 @@ class GazeView(ImageView):
         self.gaze_size = 30
 
         self.markers = []  # TODO: Use numpy array instead. Or maybe stick to list for markers since string?
-        self.timestamps = []  # TODO: Use numpy array instead
+        # self.timestamps = []  # TODO: Use numpy array instead
+        self.timestamps = np.array([], dtype=np.float64)
         self.msg_timestamp = 0.0
 
         # print(self.popup_keys)
@@ -81,8 +83,25 @@ class GazeView(ImageView):
     def add_marker(self):
         marker = self.labels_box.currentText()
         # print(marker)
+
+        if marker != "":
+            index_array = np.nonzero(self.timestamps >= self.msg_timestamp)
+            if not index_array[0].any():
+                self.timestamps = np.append(self.timestamps, self.msg_timestamp)
+                self.markers.append(marker)
+            else:
+                pass  # TODO: 
+
         if self.msg_timestamp not in self.timestamps and marker != "":
-            self.timestamps.append(self.msg_timestamp)  # placeholder code
+            index = np.nonzero(self.timestamps > self.msg_timestamp)
+            print(index)
+            # self.timestamps = np.insert(self.timestamps, index[0][0])
+            # self.markers.insert(index[0][0], marker)
+            print(self.timestamps)
+            print(self.markers)
+            # self.timestamps = np.append(self.timestamps, self.msg_timestamp)  # placeholder code
+        elif self.msg_timestamp in self.timestamps:
+            pass
 
     def message_viewed(self, bag, msg_details):
         TopicMessageView.message_viewed(self, bag, msg_details)
@@ -110,3 +129,9 @@ class GazeView(ImageView):
             self.message_tree.set_message(None)
         else:
             self.message_tree.set_message(msg)
+            if self.msg_timestamp not in self.timestamps:
+                self.labels_box.setCurrentIndex(-1)
+            else:
+                index = np.nonzero(self.timestamps == self.msg_timestamp)[0][0]
+                self.labels_box.setCurrentText(self.markers[index])
+
