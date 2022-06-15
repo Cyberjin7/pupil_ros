@@ -1,4 +1,5 @@
 from rqt_bag_plugins.image_view import ImageView
+from rqt_bag.plugins.raw_view import MessageTree
 from rqt_bag import TopicMessageView
 
 from PIL import Image
@@ -13,8 +14,7 @@ from python_qt_binding.QtCore import QRectF, Qt
 # from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox
 from PyQt5.QtCore import QRectF, Qt
 from PyQt5.QtGui import QPen, QBrush, QPixmap
-from PyQt5.QtWidgets import QApplication, QGraphicsPixmapItem
-
+from PyQt5.QtWidgets import QApplication, QGraphicsPixmapItem, QComboBox
 
 
 class GazeView(ImageView):
@@ -24,13 +24,16 @@ class GazeView(ImageView):
         # super(GazeView, self).__init__(timeline, parent, topic)
         TopicMessageView.__init__(self, timeline, parent, topic)
 
+        self.message_tree = MessageTree(parent)
+        parent.layout().addWidget(self.message_tree)
+
         self.pen = QPen()
         self.brush = QBrush(Qt.green, Qt.SolidPattern)
 
         self.popups = self.timeline.popups
         self.popup_keys = list(self.popups.keys())
         # self._image_view = self.popups[self.popup_keys[0]].findChild(QGraphicsView)
-        self._image_view = self.popups['pupil_world__Marker'].findChild(QGraphicsView)
+        self._image_view = self.popups['pupil_world__World_View'].findChild(QGraphicsView)
         self._scene = self._image_view.scene()
 
         self.gaze_size = 30
@@ -59,3 +62,8 @@ class GazeView(ImageView):
                                        self.pen,
                                        self.brush)
 
+        if t is None:
+            TopicMessageView.message_cleared(self)
+            self.message_tree.set_message(None)
+        else:
+            self.message_tree.set_message(msg)

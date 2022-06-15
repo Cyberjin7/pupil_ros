@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QGraphicsEllipseItem
 
 
 class FrameView(ImageView):
-    name = 'Marker'
+    name = 'World_View'
 
     def __init__(self, timeline, parent, topic):
         super(FrameView, self).__init__(timeline, parent, topic)
