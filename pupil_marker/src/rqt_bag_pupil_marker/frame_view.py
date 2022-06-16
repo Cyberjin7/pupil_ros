@@ -49,7 +49,6 @@ class FrameView(ImageView):
         #
         # # parent.layout().addWidget(self.message_tree)
         # TopicMessageView.__init__(self, timeline, parent, topic)
-        parent.layout().addWidget(QPushButton('Export Markers'))
         # parent.layout().addWidget(self.box1)
         # print(type(parent))
         self.topics = timeline._get_topics()  # once I know which topics are needed, will filter list accordingly

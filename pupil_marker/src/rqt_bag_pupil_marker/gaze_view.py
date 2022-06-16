@@ -6,7 +6,7 @@ from rqt_bag import TopicMessageView
 # from PIL.ImageQt import ImageQt
 
 from python_qt_binding.QtGui import QPen, QBrush, QPixmap
-from python_qt_binding.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox, QVBoxLayout, QHBoxLayout, QApplication, QGraphicsPixmapItem, QComboBox, QLabel
+from python_qt_binding.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox, QVBoxLayout, QHBoxLayout, QApplication, QGraphicsPixmapItem, QComboBox, QLabel, QTableWidget
 from python_qt_binding.QtCore import QRectF, Qt
 
 # for code completion. Comment out when running code
@@ -15,9 +15,13 @@ from python_qt_binding.QtCore import QRectF, Qt
 from PyQt5.QtCore import QRectF, Qt
 from PyQt5.QtGui import QPen, QBrush, QPixmap
 
-from PyQt5.QtWidgets import QApplication, QGraphicsPixmapItem, QComboBox, QLabel
+from PyQt5.QtWidgets import QApplication, QGraphicsPixmapItem, QComboBox, QLabel, QTableWidget, QTableWidgetItem, \
+    QFileDialog, QLineEdit
 
 import numpy as np
+import pandas as pd
+
+from os.path import exists
 
 class GazeView(ImageView):
     name = 'Gaze'
@@ -29,8 +33,14 @@ class GazeView(ImageView):
         self.message_tree = MessageTree(parent)
         parent.layout().addWidget(self.message_tree)
 
+        self.table = QTableWidget()
+        self.table.setColumnCount(2)
+        self.table.setHorizontalHeaderLabels(['Timestamp', 'Marker'])
+        self.table.cellDoubleClicked.connect(self.move2marker)
+        parent.layout().addWidget(self.table)
+
         self.label_Layout = QHBoxLayout()
-        self.label_Layout.addWidget(QLabel("Marker:"))
+        self.label_Layout.addWidget(QLabel("Current Marker:"))
         self.labels_box = QComboBox()
         self.labels_box.addItems(['Target Start',
                                   'Target End',
@@ -38,27 +48,35 @@ class GazeView(ImageView):
                                   'Goal End',
                                   'Experiment Start',
                                   'Experiment End'])
-        #self.labels_box.setPlaceholderText('None')
-        # self.labels_box.currentTextChanged.connect(self.test2)
-        # self.labels_box.activated.connect(self.test1)
 
         self.label_Layout.addWidget(self.labels_box)
         parent.layout().addLayout(self.label_Layout)
 
-        self.remove_button = QPushButton('Remove')
-        self.remove_button.setCheckable(True)
-        self.remove_button.setChecked(True)
-        self.remove_button.setEnabled(False)
+        self.remove_current_button = QPushButton('Remove Current')
+        self.remove_current_button.setEnabled(False)
+        self.remove_current_button.clicked.connect(self.remove_marker)
         self.add_button = QPushButton('Add')
         self.add_button.clicked.connect(self.add_marker)
 
         self.button_Layout = QHBoxLayout()
-        self.button_Layout.addWidget(self.remove_button)
+        self.button_Layout.addWidget(self.remove_current_button)
         self.button_Layout.addWidget(self.add_button)
         parent.layout().addLayout(self.button_Layout)
 
         self.labels_box.setCurrentText('Experiment Start')
         self.labels_box.setCurrentIndex(-1)
+
+        self.file_path = QLineEdit()
+        self.file_button = QPushButton('...')
+        self.file_button.clicked.connect(self.choose_path)
+        self.path_layout = QHBoxLayout()
+        self.path_layout.addWidget(self.file_path)
+        self.path_layout.addWidget(self.file_button)
+        parent.layout().addLayout(self.path_layout)
+
+        self.export_button = QPushButton('Export Markers')
+        self.export_button.clicked.connect(self.export_markers)
+        parent.layout().addWidget(self.export_button)
 
         self.pen = QPen()
         self.brush = QBrush(Qt.green, Qt.SolidPattern)
@@ -72,7 +90,6 @@ class GazeView(ImageView):
         self.gaze_size = 30
 
         self.markers = []  # TODO: Use numpy array instead. Or maybe stick to list for markers since string?
-        # self.timestamps = []  # TODO: Use numpy array instead
         self.timestamps = np.array([], dtype=np.float64)
         self.msg_timestamp = 0.0
 
@@ -86,22 +103,71 @@ class GazeView(ImageView):
 
         if marker != "":
             index_array = np.nonzero(self.timestamps >= self.msg_timestamp)
-            if not index_array[0].any():
+            if not index_array[0].size:
                 self.timestamps = np.append(self.timestamps, self.msg_timestamp)
                 self.markers.append(marker)
-            else:
-                pass  # TODO: 
+                self.table.insertRow(self.table.rowCount())
 
-        if self.msg_timestamp not in self.timestamps and marker != "":
-            index = np.nonzero(self.timestamps > self.msg_timestamp)
-            print(index)
-            # self.timestamps = np.insert(self.timestamps, index[0][0])
-            # self.markers.insert(index[0][0], marker)
-            print(self.timestamps)
-            print(self.markers)
-            # self.timestamps = np.append(self.timestamps, self.msg_timestamp)  # placeholder code
-        elif self.msg_timestamp in self.timestamps:
-            pass
+                target_index = self.table.rowCount()-1
+            else:
+                target_index = index_array[0][0]
+                if self.timestamps[target_index] == self.msg_timestamp:
+                    self.markers[target_index] = marker
+                else:
+                    self.timestamps = np.insert(self.timestamps, target_index, self.msg_timestamp)
+                    self.markers.insert(target_index, marker)
+                    self.table.insertRow(target_index)
+
+            stamp_item = QTableWidgetItem(str(self.msg_timestamp))
+            stamp_item.setFlags(stamp_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(target_index, 0, stamp_item)
+
+            marker_item = QTableWidgetItem(marker)
+            marker_item.setFlags(marker_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(target_index, 1, marker_item)
+
+            self.remove_current_button.setEnabled(True)
+
+        print(self.timestamps)
+        print(self.markers)
+
+    def remove_marker(self):
+        index = np.nonzero(self.timestamps == self.msg_timestamp)[0]
+        self.timestamps = np.delete(self.timestamps, index)
+        self.markers.pop(index[0])
+
+        self.table.removeRow(index[0])
+
+        print(self.timestamps)
+        print(self.markers)
+
+        self.labels_box.setCurrentIndex(-1)
+        self.remove_current_button.setEnabled(False)
+
+    def move2marker(self, row, column):
+        target_timestamp = self.table.item(row, 0)
+        for bag, entry in self.timeline.get_entries_with_bags([self.topic],
+                                                              *self.timeline._timeline_frame.play_region):
+            msg_details = self.timeline.read_message(bag, entry.position)
+            _, msg, _ = msg_details[:3]
+            if msg.timestamp == float(target_timestamp.text()):
+                self.message_viewed(bag, self.timeline.read_message(bag, entry.position))
+                self.timeline._timeline_frame.playhead = entry.time
+                break
+
+    def choose_path(self):
+        destination = QFileDialog.getExistingDirectory(options=QFileDialog.DontUseNativeDialog)
+        if destination:  # if string not empty
+            self.file_path.setText(destination)
+
+    def export_markers(self):
+        df = pd.DataFrame({'Timestamp': self.timestamps, 'Marker': self.markers})
+        csv_destination = self.file_path.text() + '.csv'
+        if exists(csv_destination):
+            pass  # TODO: ask are you sure?
+        else:
+            df.to_csv(csv_destination)
+            print('Exported!')
 
     def message_viewed(self, bag, msg_details):
         TopicMessageView.message_viewed(self, bag, msg_details)
@@ -131,7 +197,9 @@ class GazeView(ImageView):
             self.message_tree.set_message(msg)
             if self.msg_timestamp not in self.timestamps:
                 self.labels_box.setCurrentIndex(-1)
+                self.remove_current_button.setEnabled(False)
             else:
                 index = np.nonzero(self.timestamps == self.msg_timestamp)[0][0]
                 self.labels_box.setCurrentText(self.markers[index])
+                self.remove_current_button.setEnabled(True)
 
