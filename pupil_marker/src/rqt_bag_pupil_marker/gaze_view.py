@@ -37,7 +37,12 @@ class GazeView(ImageView):
         self.table.setColumnCount(2)
         self.table.setHorizontalHeaderLabels(['Timestamp', 'Marker'])
         self.table.cellDoubleClicked.connect(self.move2marker)
-        parent.layout().addWidget(self.table)
+        # parent.layout().addWidget(self.table)
+
+        self.marker_group = QGroupBox()
+        self.marker_group.setLayout(QVBoxLayout())
+
+        self.marker_group.layout().addWidget(self.table)
 
         self.label_Layout = QHBoxLayout()
         self.label_Layout.addWidget(QLabel("Current Marker:"))
@@ -48,9 +53,10 @@ class GazeView(ImageView):
                                   'Goal End',
                                   'Experiment Start',
                                   'Experiment End'])
-
+        self.labels_box.setCurrentIndex(-1)
         self.label_Layout.addWidget(self.labels_box)
-        parent.layout().addLayout(self.label_Layout)
+        self.marker_group.layout().addLayout(self.label_Layout)
+        # parent.layout().addLayout(self.label_Layout)
 
         self.remove_current_button = QPushButton('Remove Current')
         self.remove_current_button.setEnabled(False)
@@ -61,10 +67,13 @@ class GazeView(ImageView):
         self.button_Layout = QHBoxLayout()
         self.button_Layout.addWidget(self.remove_current_button)
         self.button_Layout.addWidget(self.add_button)
-        parent.layout().addLayout(self.button_Layout)
+        self.marker_group.layout().addLayout(self.button_Layout)
+        # parent.layout().addLayout(self.button_Layout)
 
-        self.labels_box.setCurrentText('Experiment Start')
-        self.labels_box.setCurrentIndex(-1)
+        parent.layout().addWidget(self.marker_group)
+
+        self.export_group = QGroupBox()
+        self.export_group.setLayout(QVBoxLayout())
 
         self.file_path = QLineEdit()
         self.file_button = QPushButton('...')
@@ -72,11 +81,14 @@ class GazeView(ImageView):
         self.path_layout = QHBoxLayout()
         self.path_layout.addWidget(self.file_path)
         self.path_layout.addWidget(self.file_button)
-        parent.layout().addLayout(self.path_layout)
+        self.export_group.layout().addLayout(self.path_layout)
+        # parent.layout().addLayout(self.path_layout)
 
         self.export_button = QPushButton('Export Markers')
         self.export_button.clicked.connect(self.export_markers)
-        parent.layout().addWidget(self.export_button)
+        self.export_group.layout().addWidget(self.export_button)
+        # parent.layout().addWidget(self.export_button)
+        parent.layout().addWidget(self.export_group)
 
         self.pen = QPen()
         self.brush = QBrush(Qt.green, Qt.SolidPattern)
