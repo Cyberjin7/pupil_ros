@@ -21,4 +21,4 @@ class PupilGazePlugin(Plugin):
         return None
 
     def get_message_types(self):
-        return['*']  # only for now until I figure out all parts of the code out
+        return['pupil_msgs/gaze']  # only for now until I figure out all parts of the code out

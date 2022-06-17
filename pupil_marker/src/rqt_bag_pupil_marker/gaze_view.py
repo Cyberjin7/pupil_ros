@@ -6,7 +6,9 @@ from rqt_bag import TopicMessageView
 # from PIL.ImageQt import ImageQt
 
 from python_qt_binding.QtGui import QPen, QBrush, QPixmap
-from python_qt_binding.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox, QVBoxLayout, QHBoxLayout, QApplication, QGraphicsPixmapItem, QComboBox, QLabel, QTableWidget
+from python_qt_binding.QtWidgets import QGraphicsScene, QGraphicsView, QPushButton, QGroupBox, QVBoxLayout, \
+    QHBoxLayout, QApplication, QGraphicsPixmapItem, QComboBox, QLabel, QTableWidget, QTableWidgetItem, QFileDialog, \
+    QLineEdit
 from python_qt_binding.QtCore import QRectF, Qt
 
 # for code completion. Comment out when running code
@@ -161,8 +163,12 @@ class GazeView(ImageView):
         for bag, entry in self.timeline.get_entries_with_bags([self.topic],
                                                               *self.timeline._timeline_frame.play_region):
             msg_details = self.timeline.read_message(bag, entry.position)
-            _, msg, _ = msg_details[:3]
-            if msg.timestamp == float(target_timestamp.text()):
+            _, msg, t = msg_details[:3]
+            # if msg.timestamp == float(target_timestamp.text()):
+            #     self.message_viewed(bag, self.timeline.read_message(bag, entry.position))
+            #     self.timeline._timeline_frame.playhead = entry.time
+            #     break
+            if t.to_sec() == float(target_timestamp.text()):
                 self.message_viewed(bag, self.timeline.read_message(bag, entry.position))
                 self.timeline._timeline_frame.playhead = entry.time
                 break
@@ -176,7 +182,7 @@ class GazeView(ImageView):
         df = pd.DataFrame({'Timestamp': self.timestamps, 'Marker': self.markers})
         csv_destination = self.file_path.text() + '.csv'
         if exists(csv_destination):
-            pass  # TODO: ask are you sure?
+            print('File already exists')
         else:
             df.to_csv(csv_destination)
             print('Exported!')
@@ -184,7 +190,8 @@ class GazeView(ImageView):
     def message_viewed(self, bag, msg_details):
         TopicMessageView.message_viewed(self, bag, msg_details)
         topic, msg, t = msg_details[:3]
-        self.msg_timestamp = msg.timestamp  # alternatively: self.msg_timestamp = t.to_sec()
+        # self.msg_timestamp = msg.timestamp  # alternatively: self.msg_timestamp = t.to_sec()
+        self.msg_timestamp = t.to_sec()
 
         # Currently assumes only one pixmap for image drawn
         scene_items = self._scene.items(Qt.DescendingOrder)
